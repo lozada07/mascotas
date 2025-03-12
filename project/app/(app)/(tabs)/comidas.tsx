@@ -8,10 +8,9 @@ import {
   ScrollView,
   Switch,
   Modal,
-  Platform,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-// import DateTimePicker from '@react-native-community/datetimepicker';
+import DatePicker from 'react-native-modern-datepicker';
 
 import { NavigationProp } from '@react-navigation/native';
 
@@ -54,15 +53,18 @@ export default function FeedingScheduleScreen({ navigation }: { navigation: Navi
     ));
   };
 
-  const handleTimeChange = (event: any, selectedTime: Date | undefined) => {
+  const handleTimeChange = (data: any) => {
+    alert(data);
+
     setShowTimePicker(false);
-    if (selectedTime && selectedSchedule) {
-      setSchedules(schedules.map(schedule =>
-        schedule.id === selectedSchedule.id
-          ? { ...schedule, time: selectedTime }
-          : schedule
-      ));
-    }
+    // if (selectedSchedule) {
+    //   const newTime = new Date(`${selectedTime}:00`);
+    //   setSchedules(schedules.map(schedule =>
+    //     schedule.id === selectedSchedule.id
+    //       ? { ...schedule, time: newTime }
+    //       : schedule
+    //   ));
+    // }
   };
 
   const formatTime = (date: Date) => {
@@ -71,6 +73,20 @@ export default function FeedingScheduleScreen({ navigation }: { navigation: Navi
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  const fetchSchedules = async () => {
+    try {
+      const response = await fetch('https://tu-api.com/schedules');
+      if (!response.ok) {
+        throw new Error('Error');
+      }
+      const data = await response.json();
+      alert(data)
+      // setSchedules(data); 
+    } catch (error) {
+      console.error('Error:', error);
+    }
   };
 
   const addNewSchedule = () => {
@@ -82,6 +98,8 @@ export default function FeedingScheduleScreen({ navigation }: { navigation: Navi
       petName: 'New Pet',
     };
     setSchedules([...schedules, newSchedule]);
+
+    fetchSchedules()
   };
 
   return (
@@ -167,21 +185,18 @@ export default function FeedingScheduleScreen({ navigation }: { navigation: Navi
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Seleccionar hora</Text>
-              {/* <DateTimePicker
-                value={tempTime}
-                mode="time"
-                is24Hour={false}
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={handleTimeChange}
-              /> */}
-              {Platform.OS === 'ios' && (
-                <TouchableOpacity
-                  style={styles.doneButton}
-                  onPress={() => setShowTimePicker(false)}
-                >
-                  <Text style={styles.doneButtonText}>Done</Text>
-                </TouchableOpacity>
-              )}
+              <DatePicker
+                mode="datepicker"
+                // selected={tempTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                onDateChange={handleTimeChange}
+              // minuteInterval={3} // Intervalos de 5 minutos
+              />
+              {/* <TouchableOpacity
+                style={styles.doneButton}
+                onPress={() => setShowTimePicker(false)}
+              >
+                <Text style={styles.doneButtonText}>Done</Text>
+              </TouchableOpacity> */}
             </View>
           </View>
         </Modal>

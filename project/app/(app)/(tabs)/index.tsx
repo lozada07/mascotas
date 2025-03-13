@@ -49,14 +49,14 @@ export default function App() {
         id: 1,
         title: "comportamiento del perro",
         category: "Entrenamiento",
-        image: "https://images.unsplash.com/photo-1544568100-847a948585b9",
+        image: require('../../../assets/images/hero/articulo1.png'),
         readTime: "5 min"
       },
       {
         id: 2,
         title: "Cuidado de Gatos",
         category: "Salud",
-        image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba",
+        image: require('../../../assets/images/hero/articulo2.png'),
         readTime: "4 min"
       }
     ]
@@ -88,13 +88,14 @@ export default function App() {
       id: 1,
       name: 'Perro Familiar',
       especie: "Perro",
-      image: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1267&q=80',
+      image: require('../../../assets/images/hero/noticias.png'),
     },
     {
       id: 2,
       name: 'Gato Familiar',
       especie: "Gato",
-      image: 'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
+      image: require('../../../assets/images/hero/noticias1.png'),
+
     },
 
   ];
@@ -151,7 +152,7 @@ export default function App() {
         >
           {noticias.map(pet => (
             <View key={pet.id} style={styles.expensivePetCard}>
-              <Image source={{ uri: pet.image }} style={styles.expensivePetImage} />
+              <Image source={pet.image} style={styles.expensivePetImage} />
               <View style={styles.expensivePetInfo}>
                 <Text style={styles.expensivePetName}>{pet.name}</Text>
                 <Text style={styles.expensivePetDescription}>{pet.especie}</Text>
@@ -159,16 +160,15 @@ export default function App() {
             </View>
           ))}
         </ScrollView>
+
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Articulos</Text>
         </View>
         <View style={styles.section}>
-
-
           <View style={styles.articleGrid}>
             {articles.featured.map(article => (
               <TouchableOpacity key={article.id} style={styles.articleCard}>
-                <Image source={{ uri: article.image }} style={styles.articleImage} />
+                <Image source={article.image} style={styles.articleImage} />
                 <View style={styles.articleOverlay}>
                   <View style={styles.articleContent}>
                     <View style={styles.categoryBadge}>

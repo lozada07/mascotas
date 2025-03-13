@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -10,40 +10,120 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import DatePicker from 'react-native-modern-datepicker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { supabase } from '@/libs/supabaseClient';  // Asegúrate de que la configuración de Supabase esté correctamente importada
 
 import { NavigationProp } from '@react-navigation/native';
 
 export default function FeedingScheduleScreen({ navigation }: { navigation: NavigationProp<any> }) {
-  const [schedules, setSchedules] = useState([
-    {
-      id: 1,
-      time: new Date('2024-01-01T08:00:00'),
-      active: true,
-      days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-      petName: 'Max',
-    },
-    {
-      id: 2,
-      time: new Date('2024-01-01T12:30:00'),
-      active: true,
-      days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      petName: 'Bella',
-    },
-    {
-      id: 3,
-      time: new Date('2024-01-01T18:00:00'),
-      active: false,
-      days: ['Mon', 'Wed', 'Fri'],
-      petName: 'Max',
-    },
-  ]);
-
+  const [schedules, setSchedules] = useState<{ id: number; time: Date; active: boolean; days: string[]; pet_name: string, notified: boolean }[]>([]);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [selectedSchedule, setSelectedSchedule] = useState<{ id: number; time: Date; active: boolean; days: string[]; petName: string } | null>(null);
+  const [selectedSchedule, setSelectedSchedule] = useState<{ id: number; time: Date; active: boolean; days: string[]; pet_name: string } | null>(null);
   const [tempTime, setTempTime] = useState(new Date());
 
-  const daysOfWeek = ['Sab', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  // Array para almacenar las horas y minutos programados como objetos
+  const [timesArray, setTimesArray] = useState<{ hour: number, minute: number }[]>([]);
+  const [notifiedMinutes, setNotifiedMinutes] = useState<number[]>([]);  // Estado para almacenar los minutos notificados
+
+  useEffect(() => {
+    // Llamada para obtener los horarios guardados
+    fetchSchedules();
+  }, []);
+
+  const fetchSchedules = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('feeding_schedules')
+        .select('*');  // Seleccionamos todos los registros
+
+      if (error) {
+        throw error;
+      }
+
+      // Si la consulta es exitosa, actualizamos el estado con los horarios obtenidos
+      const formattedSchedules = data.map(schedule => ({
+        ...schedule,
+        notified: false,  // Añadir la propiedad notified para cada horario
+      }));
+      setSchedules(formattedSchedules);
+
+      // Ahora extraemos las horas y minutos de cada horario y las almacenamos en un array de objetos
+      const times = formattedSchedules.map((schedule) => {
+        const scheduleTime = new Date(schedule.time);
+        return {
+          hour: scheduleTime.getHours(),
+          minute: scheduleTime.getMinutes(),
+        };  // Guardamos las horas y minutos como objetos
+      });
+
+      // Establecemos el array de tiempos
+      setTimesArray(times);
+    } catch (error) {
+      console.error('Error al recuperar los horarios:', error);
+      alert('Error al recuperar los horarios.');
+    }
+  };
+
+  // Revisar si la hora actual coincide con alguna programada
+  const checkSchedules = () => {
+    if (timesArray.length === 0) {
+      console.log('El array de horarios está vacío, no se puede verificar.');
+      return;
+    }
+
+    const currentTime = new Date();
+    const currentTimeInMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();  // Convertir la hora actual a minutos
+    console.log("Hora actual (minutos):", currentTimeInMinutes);
+    console.log("Array de horas programadas (minutos):", timesArray);
+    console.log("Minutos notificados:", notifiedMinutes);
+
+    // Verificar si la hora actual coincide con alguna hora programada
+    timesArray.forEach((time, index) => {
+      const scheduleTimeInMinutes = time.hour * 60 + time.minute;  // Convertimos la hora y minuto a minutos
+
+      // Evitar repetir el mismo minuto
+      if (
+        scheduleTimeInMinutes === currentTimeInMinutes &&
+        !schedules[index].notified &&
+        schedules[index].active &&
+        !notifiedMinutes.includes(currentTimeInMinutes)
+      ) {
+
+        fetchDataFromServer()
+
+        setSchedules(prevSchedules => {
+          const updatedSchedules = [...prevSchedules];
+          updatedSchedules[index].notified = true;
+          return updatedSchedules;
+        });
+
+        // Añadir el minuto notificado al array
+        setNotifiedMinutes(prev => [...prev, currentTimeInMinutes]);
+      }
+    });
+  };
+
+  const fetchDataFromServer = async () => {
+    try {
+      const response = await fetch('https://tu-servidor.com/api/alert', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+
+      });
+
+      const data = await response.json();
+      console.log('Respuesta del servidor:', data);
+    } catch (error) {
+      console.error('Error al hacer la solicitud GET:', error);
+    }
+  };
+
+  useEffect(() => {
+    const intervalId = setInterval(() => checkSchedules(), 30000);  // Verifica cada 30 segundos
+    return () => clearInterval(intervalId);
+  }, [timesArray, notifiedMinutes]);
 
   const toggleSchedule = (id: number) => {
     setSchedules(schedules.map(schedule =>
@@ -53,18 +133,45 @@ export default function FeedingScheduleScreen({ navigation }: { navigation: Navi
     ));
   };
 
-  const handleTimeChange = (data: any) => {
-    alert(data);
-
+  const handleTimeChange = async (data: any) => {
     setShowTimePicker(false);
-    // if (selectedSchedule) {
-    //   const newTime = new Date(`${selectedTime}:00`);
-    //   setSchedules(schedules.map(schedule =>
-    //     schedule.id === selectedSchedule.id
-    //       ? { ...schedule, time: newTime }
-    //       : schedule
-    //   ));
-    // }
+
+    if (data.type == 'set') {
+      const newSchedulePetName = 'New Pet';
+      const newSchedule = {
+        id: Date.now(),
+        time: new Date(data.nativeEvent.timestamp),
+        active: true,
+        days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+        petName: "Terry",
+        notified: false,
+      };
+
+      try {
+        const { data: newData, error } = await supabase
+          .from('feeding_schedules')
+          .insert([{
+            time: newSchedule.time,
+            active: newSchedule.active,
+            days: newSchedule.days,
+            pet_name: newSchedule.petName
+          }]);
+
+        if (error) {
+          throw error;
+        }
+
+        alert('Hora agregada exitosamente');
+        console.log(newData);
+
+        fetchSchedules();  // Vuelve a obtener los horarios actualizados
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error al agregar una nueva hora');
+      }
+    } else {
+      return;
+    }
   };
 
   const formatTime = (date: Date) => {
@@ -75,33 +182,6 @@ export default function FeedingScheduleScreen({ navigation }: { navigation: Navi
     });
   };
 
-  const fetchSchedules = async () => {
-    try {
-      const response = await fetch('https://tu-api.com/schedules');
-      if (!response.ok) {
-        throw new Error('Error');
-      }
-      const data = await response.json();
-      alert(data)
-      // setSchedules(data); 
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
-  const addNewSchedule = () => {
-    const newSchedule = {
-      id: Date.now(),
-      time: new Date(),
-      active: true,
-      days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-      petName: 'New Pet',
-    };
-    setSchedules([...schedules, newSchedule]);
-
-    fetchSchedules()
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -110,69 +190,51 @@ export default function FeedingScheduleScreen({ navigation }: { navigation: Navi
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Horario de alimentación</Text>
-        <TouchableOpacity onPress={addNewSchedule}>
+        <TouchableOpacity onPress={() => { setShowTimePicker(true) }}>
           <Ionicons name="add" size={24} color="#333" />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content}>
-        {schedules.map((schedule) => (
-          <View key={schedule.id} style={styles.scheduleCard}>
-            <View style={styles.scheduleHeader}>
-              <View style={styles.petInfo}>
-                <MaterialCommunityIcons
-                  name="dog-side"
-                  size={24}
-                  color="#B4E4E0"
-                />
-                <Text style={styles.petName}>{schedule.petName}</Text>
-              </View>
-              <Switch
-                value={schedule.active}
-                onValueChange={() => toggleSchedule(schedule.id)}
-                trackColor={{ false: '#E5E5E5', true: '#B4E4E0' }}
-                thumbColor={schedule.active ? '#2D3A3A' : '#FFF'}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={styles.timeContainer}
-              onPress={() => {
-                setSelectedSchedule(schedule);
-                setTempTime(schedule.time);
-                setShowTimePicker(true);
-              }}
-            >
-              <Text style={[
-                styles.timeText,
-                !schedule.active && styles.inactiveText
-              ]}>
-                {formatTime(schedule.time)}
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.daysContainer}>
-              {daysOfWeek.map((day) => (
-                <View
-                  key={day}
-                  style={[
-                    styles.dayBadge,
-                    schedule.days.includes(day) && styles.activeDayBadge,
-                    !schedule.active && styles.inactiveDayBadge,
-                  ]}
-                >
-                  <Text style={[
-                    styles.dayText,
-                    schedule.days.includes(day) && styles.activeDayText,
-                    !schedule.active && styles.inactiveText,
-                  ]}>
-                    {day}
-                  </Text>
+        {schedules.length === 0 ? (
+          <Text>No hay horarios de alimentación.</Text>
+        ) : (
+          schedules.map((schedule) => (
+            <View key={schedule.id} style={styles.scheduleCard}>
+              <View style={styles.scheduleHeader}>
+                <View style={styles.petInfo}>
+                  <MaterialCommunityIcons
+                    name="dog-side"
+                    size={24}
+                    color="#B4E4E0"
+                  />
+                  <Text style={styles.petName}>{schedule.pet_name}</Text>
                 </View>
-              ))}
+                <Switch
+                  value={schedule.active}
+                  onValueChange={() => toggleSchedule(schedule.id)}
+                  trackColor={{ false: '#E5E5E5', true: '#B4E4E0' }}
+                  thumbColor={schedule.active ? '#2D3A3A' : '#FFF'}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={styles.timeContainer}
+                onPress={() => {
+                  setSelectedSchedule(schedule);
+                  setShowTimePicker(true);
+                }}
+              >
+                <Text style={[
+                  styles.timeText,
+                  !schedule.active && styles.inactiveText
+                ]}>
+                  {formatTime(new Date(schedule.time))}
+                </Text>
+              </TouchableOpacity>
             </View>
-          </View>
-        ))}
+          ))
+        )}
       </ScrollView>
 
       {showTimePicker && (
@@ -185,18 +247,11 @@ export default function FeedingScheduleScreen({ navigation }: { navigation: Navi
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Seleccionar hora</Text>
-              <DatePicker
-                mode="datepicker"
-                // selected={tempTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                onDateChange={handleTimeChange}
-              // minuteInterval={3} // Intervalos de 5 minutos
+              <DateTimePicker
+                mode='time'
+                value={tempTime}
+                onChange={handleTimeChange}
               />
-              {/* <TouchableOpacity
-                style={styles.doneButton}
-                onPress={() => setShowTimePicker(false)}
-              >
-                <Text style={styles.doneButtonText}>Done</Text>
-              </TouchableOpacity> */}
             </View>
           </View>
         </Modal>

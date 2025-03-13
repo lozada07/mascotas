@@ -43,7 +43,8 @@ export default function Register() {
 
   return (
     <ImageBackground
-      source={{ uri: "https://images.unsplash.com/photo-1563460716037-460a3ad24ba9?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" }}
+      source={require('../../assets/images/hero/register.png')}
+
       style={styles.container}
     >
       <LinearGradient

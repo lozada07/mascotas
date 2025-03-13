@@ -30,7 +30,7 @@ export default function Login() {
 
   return (
     <ImageBackground
-      source={{ uri: "https://images.unsplash.com/photo-1592194996308-7b43878e84a6?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" }}
+      source={require('../../assets/images/hero/login.png')}
       style={styles.container}
     >
       <LinearGradient

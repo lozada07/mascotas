@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -20,19 +20,31 @@ import { supabase } from '@/libs/supabaseClient';
 import { router } from 'expo-router';
 
 export default function ProfileScreen({ navigation }: { navigation: NavigationProp<any> }) {
+  const [user, setUser] = useState<any>(null);
+
+
+
+  useEffect(() => {
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setUser(session.user);
+
+      }
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event: string, session: { user: any } | null) => {
+      setUser(session?.user);
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
   // Mock user data
-  const user = {
-    name: 'Maria Suarez',
-    email: 'maria@gmail.com',
-    image: 'https://randomuser.me/api/portraits/women/44.jpg',
-    joinDate: 'Miembro desde marzo 2023',
-    pets: 3,
-    orders: 12,
-    savedItems: 8
-  };
 
 
-  // Settings options
+
   const settingsOptions = [
     {
       icon: 'settings-outline',
@@ -79,21 +91,20 @@ export default function ProfileScreen({ navigation }: { navigation: NavigationPr
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Mi Perfil</Text>
-        <TouchableOpacity>
-          <Feather name="edit-2" size={22} color="#333" />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}></Text>
+
+
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Profile Info */}
         <View style={styles.profileSection}>
           <Image
-            source={{ uri: user.image }}
+            source={require("../../../assets/images/hero/avatar.png")}
             style={styles.profileImage}
           />
-          <Text style={styles.userName}>{user.name}</Text>
-          <Text style={styles.userEmail}>{user.email}</Text>
-          <Text style={styles.memberSince}>{user.joinDate}</Text>
+          <Text style={styles.userName}>{user ? user.user_metadata.display_name : ''} </Text>
+          <Text style={styles.userEmail}>{user ? user.user_metadata.email : ""}</Text>
 
 
         </View>

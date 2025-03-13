@@ -89,7 +89,8 @@ export default function FeedingScheduleScreen({ navigation }: { navigation: Navi
         !notifiedMinutes.includes(currentTimeInMinutes)
       ) {
 
-        fetchDataFromServer()
+        alert("Es hora de alimentar")
+        // fetchDataFromServer()
 
         setSchedules(prevSchedules => {
           const updatedSchedules = [...prevSchedules];

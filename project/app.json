@@ -21,6 +21,18 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "844c576a-5729-425f-bf8d-73014f91449c"
+      }
+    },
+    "owner": "david2111",
+    "android": {
+      "package": "com.david2111.mascotas"
     }
   }
 }
